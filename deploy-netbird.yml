@@ -4,6 +4,8 @@
   vars:
     ufw_setup: true
     netbird_domain: "{{ lookup('community.general.onepassword', 'Netbird', field='domain', vault='CANTACS' ) }}"
+    docker_users:
+      - "{{ ansible_user }}"
 
   pre_tasks:
     - name: Update apt cache and packages
@@ -28,14 +30,38 @@
       ignore_errors: true
 
   tasks:
-    - name: Set NETBIRD_DOMAIN environment variable
-      ansible.builtin.set_fact:
-        env:
-          NETBIRD_DOMAIN: "{{ netbird_domain }}"
-
     - name: Run Netbird installation script
       ansible.builtin.shell: "curl -fsSL https://github.com/netbirdio/netbird/releases/latest/download/getting-started-with-zitadel.sh | bash"
+      environment:
+        NETBIRD_DOMAIN: "{{ netbird_domain }}"
       when: netbird_check.rc != 0
+      register: script_output
+      failed_when: "'Done!' not in script_output.stdout"
+
+    - name: Debug script output
+      ansible.builtin.debug:
+        var: script_output.stdout
+
+    - name: Ensure the script completed successfully
+      ansible.builtin.assert:
+        that:
+          - "'Done!' in script_output.stdout"
+          - "'You can access the NetBird dashboard at' in script_output.stdout"
+
+    - name: Extract the username and password
+      ansible.builtin.set_fact:
+        netbird_credentials: "{{ script_output.stdout | regex_search('Username: (\\S+)', '\\1') }}"
+        netbird_password: "{{ script_output.stdout | regex_search('Password: (\\S+)', '\\1') }}"
+
+    - name: Display extracted username and password
+      ansible.builtin.debug:
+        msg: "Username: {{ netbird_credentials }}, Password: {{ netbird_password }}"
+
+    - name: Ensure credentials are successfully extracted
+      ansible.builtin.assert:
+        that:
+          - netbird_credentials is defined
+          - netbird_password is defined
 
   roles:
     - geerlingguy.docker
