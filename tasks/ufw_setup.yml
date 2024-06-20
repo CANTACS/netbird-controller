@@ -1,0 +1,63 @@
+---
+- name: Install UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: true
+
+- name: Reset all UFW rules
+  community.general.ufw:
+    state: reset
+  when: reset
+
+- name: Deny all incoming traffic by default
+  community.general.ufw:
+    direction: incoming
+    policy: deny
+
+- name: Allow SSH access
+  community.general.ufw:
+    rule: allow
+    port: '22'
+    proto: tcp
+
+- name: Rate-limit SSH connections to mitigate brute-force attacks
+  community.general.ufw:
+    rule: limit
+    port: '22'
+    proto: tcp
+
+- name: Allow HTTP traffic
+  community.general.ufw:
+    rule: allow
+    port: '80'
+    proto: tcp
+
+- name: Allow HTTPS traffic
+  community.general.ufw:
+    rule: allow
+    port: '443'
+    proto: tcp
+
+- name: Allow TCP ports needed for Netbird
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  with_items:
+    - '33073'
+    - '10000'
+
+- name: Allow UDP ports needed for Netbird
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: udp
+  with_items:
+    - '3478'
+    - '49152:65535'
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+    default: deny
