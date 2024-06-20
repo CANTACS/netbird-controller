@@ -1,0 +1,41 @@
+---
+- hosts: netbird-controller
+  become: true
+  vars:
+    ufw_setup: true
+    netbird_domain: "{{ lookup('community.general.onepassword', 'Netbird', field='domain', vault='CANTACS' ) }}"
+
+  pre_tasks:
+    - name: Update apt cache and packages
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name:
+          - jq
+          - curl
+        state: present
+
+    - name: Setup UFW firewall
+      ansible.builtin.include_tasks: tasks/ufw_setup.yml
+      when: ufw_setup
+
+    - name: Check if Netbird is installed
+      ansible.builtin.command: "which netbird"
+      register: netbird_check
+      ignore_errors: true
+
+  tasks:
+    - name: Set NETBIRD_DOMAIN environment variable
+      ansible.builtin.set_fact:
+        env:
+          NETBIRD_DOMAIN: "{{ netbird_domain }}"
+
+    - name: Run Netbird installation script
+      ansible.builtin.shell: "curl -fsSL https://github.com/netbirdio/netbird/releases/latest/download/getting-started-with-zitadel.sh | bash"
+      when: netbird_check.rc != 0
+
+  roles:
+    - geerlingguy.docker
