@@ -8,7 +8,6 @@
 - name: Reset all UFW rules
   community.general.ufw:
     state: reset
-  when: reset
 
 - name: Deny all incoming traffic by default
   community.general.ufw:
