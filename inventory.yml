@@ -1,8 +1,4 @@
-netbird-controller:
+netbirdcontroller:
   hosts:
-    "{{ lookup('community.general.onepassword', 'Netbird', field='controller-ip', vault='CANTACS' ) }}": {}
-  # 192.168.0.1:
-  #   ansible_user: root
-  #   ansible_ssh_pass: password
-  #   ansible_ssh_port: 22
-  #   ansible_ssh_host_key_checking: False
+    "{{ netbird_domain }}":
+      ansible_user: debian
