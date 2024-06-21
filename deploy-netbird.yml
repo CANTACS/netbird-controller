@@ -37,6 +37,7 @@
       when: netbird_check.rc != 0
       register: script_output
       failed_when: "'Done!' not in script_output.stdout"
+      timeout: 600
 
     - name: Debug script output
       ansible.builtin.debug:
